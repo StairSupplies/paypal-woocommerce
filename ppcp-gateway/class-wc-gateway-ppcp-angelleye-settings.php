@@ -593,14 +593,14 @@ if (!class_exists('WC_Gateway_PPCP_AngellEYE_Settings')) {
                     'label' => __('Enable Pay Later Messaging', 'paypal-for-woocommerce'),
                     'type' => 'checkbox',
                     'description' => '<div style="font-size: smaller">Displays Pay Later messaging for available offers. Restrictions apply. <a target="_blank" href="https://developer.paypal.com/docs/business/pay-later/commerce-platforms/angelleye/">See terms and learn more</a></div>',
-                    'default' => 'no'
+                    'default' => 'yes'
                 ),
                 'pay_later_messaging_page_type' => array(
                     'title' => __('Page Type', 'paypal-for-woocommerce'),
                     'type' => 'multiselect',
                     'css' => 'width: 100%;',
                     'class' => 'wc-enhanced-select pay_later_messaging_field',
-                    'default' => array('home', 'category', 'product', 'cart', 'payment'),
+                    'default' => array('product', 'cart', 'payment'),
                     'options' => array('home' => __('Home', 'paypal-for-woocommerce'), 'category' => __('Category', 'paypal-for-woocommerce'), 'product' => __('Product', 'paypal-for-woocommerce'), 'cart' => __('Cart', 'paypal-for-woocommerce'), 'payment' => __('Payment', 'paypal-for-woocommerce')),
                     'description' => '<div style="font-size: smaller;">Set the page(s) you want to display messaging on, and then adjust that page\'s display option below.</div>',
                 ),
@@ -1121,8 +1121,8 @@ if (!class_exists('WC_Gateway_PPCP_AngellEYE_Settings')) {
                     'title' => __('Advanced Credit Cards', 'paypal-for-woocommerce'),
                     'type' => 'checkbox',
                     'label' => __('Enable advanced credit and debit card payments.', 'paypal-for-woocommerce'),
-                    'default' => 'yes',
-                    'description' => 'PayPal currently supports direct credit card processing for US, AU, UK, FR, IT and ES. <br> <br>If you have not already been approved for Advanced Credit Cards, please use the link below to apply. <br><br><span class="ppcp_sandbox"><a target="_blank" href="https://www.sandbox.paypal.com/bizsignup/entry/product/ppcp">Apply for Advanced Credit Cards</a></span><span class="ppcp_live"><a target="_blank" href="https://www.paypal.com/bizsignup/entry/product/ppcp">Apply for Advanced Credit Cards</a></span>',
+                    'default' => 'no',
+                    'description' => 'PayPal currently supports direct credit card processing for US, AU, UK, FR, IT, CA and ES. <br> <br>If you have not already been approved for Advanced Credit Cards, please use the link below to apply. <br><br><span><a target="_blank" href="https://www.angelleye.com/advanced-credit-card-setup-for-paypal/">Apply for Advanced Credit Cards</a>',
                 ),
                 'threed_secure_enabled' => array(
                     'title' => __('3D Secure', 'paypal-for-woocommerce'),
@@ -1131,13 +1131,34 @@ if (!class_exists('WC_Gateway_PPCP_AngellEYE_Settings')) {
                     'description' => __('Enable 3D Secure for additional security on direct credit card checkouts. In Europe this is required.', 'paypal-for-woocommerce'),
                     'default' => 'no',
                 ),
+                'soft_descriptor' => array(
+                    'title' => __('Credit Card Statement Name', 'paypal-for-woocommerce'),
+                    'type' => 'text',
+                    'description' => __('The value entered here will be displayed on the buyer\'s credit card statement.', 'paypal-for-woocommerce'),
+                    'default' => '',
+                    'desc_tip' => true,
+                    'custom_attributes' => array('maxlength' => '22'),
+                ),
+                'error_email_notification' => array(
+                    'title' => __('Error Email Notifications', 'paypal-for-woocommerce'),
+                    'type' => 'checkbox',
+                    'label' => __('Enable admin email notifications for errors.', 'paypal-for-woocommerce'),
+                    'default' => 'yes',
+                    'description' => __('This will send a detailed error email to the WordPress site administrator if a PayPal API error occurs.', 'paypal-for-woocommerce'),
+                    'desc_tip' => true
+                ),
                 'debug' => array(
                     'title' => __('Debug log', 'paypal-for-woocommerce'),
-                    'type' => 'checkbox',
-                    'label' => __('Enable logging', 'paypal-for-woocommerce'),
-                    'default' => 'yes',
+                    'type' => 'select',
+                    'class' => 'wc-enhanced-select',
                     'description' => sprintf(__('Log PayPal events, such as Payment, Refund inside %s Note: this may log personal information. We recommend using this for debugging purposes only and deleting the logs when finished.', 'paypal-for-woocommerce'), '<code>' . WC_Log_Handler_File::get_log_file_path('angelleye_ppcp') . '</code>'),
-                ),
+                    'options' => array(
+                        'everything' => __('Everything', 'paypal-for-woocommerce'),
+                        'errors_warnings_only' => __('Errors and Warnings Only', 'paypal-for-woocommerce'),
+                        'disabled' => __('Disabled', 'paypal-for-woocommerce')
+                    ),
+                    'default' => 'everything'
+                )
             );
             if (angelleye_ppcp_is_local_server()) {
                 unset($this->angelleye_ppcp_gateway_setting['live_onboarding']);

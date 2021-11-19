@@ -93,6 +93,7 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
             add_action('angelleye_braintree_payment_fields', array($this, 'angelleye_braintree_payment_fields'), 10);
         }
         $this->storeInVaultOnSuccess = false;
+        
     }
 
     /**
@@ -175,7 +176,6 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
                 jQuery('select#wc_braintree_merchant_account_id_currency').change(function () {
                     jQuery('.js-add-merchant-account-id').text('<?php esc_html_e('Add merchant account ID for ', 'paypal-for-woocommerce'); ?>' + jQuery(this).val())
                 });
-
             </script>
         </table> 
         <p class="submit">
@@ -654,6 +654,11 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
                                 $form.unblock();
                             }
                         });
+                        var paypal_option = {
+                            flow: 'checkout',
+                            amount: '<?php echo $order_total; ?>',
+                            currency: '<?php echo get_woocommerce_currency(); ?>'
+                          }
                         var button = document.querySelector('#place_order');
                         var $form = $( 'form.checkout, form#order_review, form#add_payment_method' );
                         var checkout_form = document.querySelector('form.checkout, form#order_review, form#add_payment_method')
@@ -664,12 +669,10 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
                             authorization: clientToken,
                             container: "#braintree-payment-form",
                             <?php if($this->threed_secure_enabled === true) { ?>
-                               threeDSecure: <?php echo $order_total; ?>,     
+                               threeDSecure: true,     
                             <?php } ?>
                             locale: '<?php echo AngellEYE_Utility::get_button_locale_code(); ?>',
-                            paypal: {
-                                flow: 'vault'
-                            },
+                            paypal: paypal_option,
                             <?php if($this->enable_google_pay == 'yes') { ?>
                             googlePay: {
                                 <?php if($this->environment == 'production') { ?>
@@ -719,16 +722,13 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
                             }
                             checkout_form.addEventListener('submit', function (event) {
                             if(is_angelleye_braintree_selected()) {
-                                dropinInstance.requestPaymentMethod( function (err, payload) {
-                                    if(err) {
-                                        $('.woocommerce-error').remove();
-                                        $('.braintree-device-data', ccForm).remove();
-                                        $('.braintree-token', ccForm).remove();
-                                        $('.woocommerce-error').remove();
-                                        $('.is_submit').remove();
-                                        $form.unblock();
-                                        return false;
-                                    }
+                                 dropinInstance.requestPaymentMethod({
+                                    <?php if($this->threed_secure_enabled === true) { ?> 
+                                    threeDSecure: {
+                                            amount: '<?php echo $order_total; ?>',
+                                    },
+                                    <?php } ?>
+                                  }, function (err, payload) {
                                     <?php if($this->threed_secure_enabled === true) { ?>
                                     if (!payload.liabilityShifted && payload.type == 'CreditCard') {
                                         if( typeof dropinInstance !== 'undefined') {
@@ -758,6 +758,13 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
                                         $form.submit();
                                         $('form.checkout').triggerHandler("checkout_place_order");
                                     } 
+                                    if(err) {
+                                        $('.woocommerce-error').remove();
+                                        console.log(err.message);
+                                        $('.is_submit').remove();
+                                        $form.unblock();
+                                        return false;
+                                    }
                                 });
                             }
                             });
@@ -1935,7 +1942,7 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
             return;
         }
         if ($this->enable_braintree_drop_in) {
-            wp_enqueue_script('braintree-gateway', 'https://js.braintreegateway.com/web/dropin/1.25.0/js/dropin.min.js', array('jquery'), null, false);
+            wp_enqueue_script('braintree-gateway-dropin', 'https://js.braintreegateway.com/web/dropin/1.31.2/js/dropin.min.js', array('jquery'), null, false);
             if($this->enable_braintree_ach) {
                 wp_enqueue_script('braintree-gateway-client', 'https://js.braintreegateway.com/web/3.61.0/js/client.min.js', array('jquery'), null, true);
                 wp_enqueue_script('braintree-us-bank-account', 'https://js.braintreegateway.com/web/3.61.0/js/us-bank-account.min.js', array('jquery'), null, true);
@@ -3015,7 +3022,7 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
         }
     }
     
-    public function pfw_braintree_do_capture($request_data = array(), $order) {
+    public function pfw_braintree_do_capture($order, $request_data = array()) {
         $order_id = version_compare(WC_VERSION, '3.0', '<') ? $order->id : $order->get_id();
         $this->merchant_account_id = $this->angelleye_braintree_get_merchant_account_id($order_id);
         if (isset($this->merchant_account_id) && !empty($this->merchant_account_id)) {

@@ -52,17 +52,30 @@ jQuery(function ($) {
             term_notice.show();
         }
     }).change();
+    $('#woocommerce_angelleye_ppcp_enable_advanced_card_payments').click(function () {
+        if ($(this).is(':checked')) {
+            $('#woocommerce_angelleye_ppcp_cart_disallowed_funding_methods option[value="card"]').prop("selected", true);
+            $("#woocommerce_angelleye_ppcp_cart_disallowed_funding_methods").trigger("change");
+        } else {
+            $('#woocommerce_angelleye_ppcp_cart_disallowed_funding_methods option[value="card"]').prop("selected", false);
+            $("#woocommerce_angelleye_ppcp_cart_disallowed_funding_methods").trigger("change");
+        }
+    });
     $('#woocommerce_angelleye_ppcp_enable_advanced_card_payments').change(function () {
         if ($(this).is(':checked')) {
             $('#woocommerce_angelleye_ppcp_threed_secure_enabled').closest('tr').show();
+            if ($("#woocommerce_angelleye_ppcp_checkout_disallowed_funding_methods option[value='card']").length !== 0) {
+                $('#woocommerce_angelleye_ppcp_checkout_disallowed_funding_methods option[value="card"]').remove();
+            }
         } else {
+            if ($("#woocommerce_angelleye_ppcp_checkout_disallowed_funding_methods option[value='card']").length === 0) {
+                $('#woocommerce_angelleye_ppcp_checkout_disallowed_funding_methods option:eq(0)').before(jQuery("<option></option>").attr("value", "card").text("Credit or Debit Card"));
+            }
             $('#woocommerce_angelleye_ppcp_threed_secure_enabled').closest('tr').hide();
         }
     }).change();
     $('#woocommerce_angelleye_ppcp_sandbox_disconnect, #woocommerce_angelleye_ppcp_live_disconnect, #woocommerce_angelleye_ppcp_sandbox_onboarding, #woocommerce_angelleye_ppcp_live_onboarding, #woocommerce_angelleye_ppcp_live_merchant_id, #woocommerce_angelleye_ppcp_sandbox_merchant_id').closest('tr').hide();
     $('#woocommerce_angelleye_ppcp_testmode').change(function () {
-        $('.ppcp_sandbox').show();
-        $('.ppcp_live').hide();
         var ppcp_production_onboarding_connect_fields = $('#woocommerce_angelleye_ppcp_live_onboarding').closest('tr');
         var ppcp_sandbox_onboarding_connect_fields = $('#woocommerce_angelleye_ppcp_sandbox_onboarding').closest('tr');
         var ppcp_production_onboarding_disconnect_fields = $('#woocommerce_angelleye_ppcp_live_disconnect').closest('tr');
@@ -85,8 +98,6 @@ jQuery(function ($) {
                 }
             }
         } else {
-            $('.ppcp_sandbox').hide();
-            $('.ppcp_live').show();
             $('#woocommerce_angelleye_ppcp_sandbox_merchant_id').closest('tr').hide();
             ppcp_sandbox_onboarding_connect_fields.hide();
             ppcp_sandbox_onboarding_disconnect_fields.hide();
