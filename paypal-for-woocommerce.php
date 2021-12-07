@@ -408,6 +408,10 @@ if(!class_exists('AngellEYE_Gateway_Paypal')){
             AngellEYE_PayPal_PPCP_Pay_Later::instance();
             AngellEYE_PayPal_PPCP_Admin_Action::instance();
             AngellEYE_PayPal_PPCP_Front_Action::instance();
+            if ( class_exists( 'WC_Subscriptions' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+                include_once ( PAYPAL_FOR_WOOCOMMERCE_PLUGIN_DIR . '/ppcp-gateway/subscriptions/class-angelleye-paypal-ppcp-catalog-products.php');
+                AngellEYE_PayPal_PPCP_Catalog_Products::instance();
+            }
             add_filter( 'woocommerce_payment_gateways', array($this, 'angelleye_add_paypal_pro_gateway'),1000 );
         }
 

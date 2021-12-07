@@ -14,11 +14,67 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
     }
 
     public function __construct() {
-        
+        try {
+            $this->angelleye_ppcp_load_class();
+            $this->angelleye_ppcp_add_hooks();
+            $this->is_sandbox = 'yes' === $this->settings->get('testmode', 'no');
+            if ($this->is_sandbox) {
+                $this->products_url = 'https://api-m.sandbox.paypal.com/v1/catalogs/products';
+            } else {
+                $this->products_url = 'https://api-m.paypal.com/v1/catalogs/products';
+            }
+        } catch (Exception $ex) {
+            
+        }
+    }
+
+    public function angelleye_ppcp_load_class() {
+        try {
+            if (!class_exists('WC_Gateway_PPCP_AngellEYE_Settings')) {
+                include_once PAYPAL_FOR_WOOCOMMERCE_PLUGIN_DIR . '/ppcp-gateway/class-wc-gateway-ppcp-angelleye-settings.php';
+            }
+            if (!class_exists('AngellEYE_PayPal_PPCP_Request')) {
+                include_once PAYPAL_FOR_WOOCOMMERCE_PLUGIN_DIR . '/ppcp-gateway/class-angelleye-paypal-ppcp-request.php';
+            }
+            if (!class_exists('AngellEYE_PayPal_PPCP_Log')) {
+                include_once PAYPAL_FOR_WOOCOMMERCE_PLUGIN_DIR . '/ppcp-gateway/class-angelleye-paypal-ppcp-log.php';
+            }
+            $this->api_log = AngellEYE_PayPal_PPCP_Log::instance();
+            $this->settings = WC_Gateway_PPCP_AngellEYE_Settings::instance();
+            $this->api_request = AngellEYE_PayPal_PPCP_Request::instance();
+            $this->payment = AngellEYE_PayPal_PPCP_Payment::instance();
+        } catch (Exception $ex) {
+            $this->api_log->log("The exception was created on line: " . $ex->getLine(), 'error');
+            $this->api_log->log($ex->getMessage(), 'error');
+        }
+    }
+
+    public function angelleye_ppcp_add_hooks() {
+        add_action('save_post_product', array($this, 'angelleye_ppcp_sync_paypal_product'), 10, 3);
+    }
+
+    public function angelleye_ppcp_sync_paypal_product($post_id, $post, $update) {
+        try {
+            $product = wc_get_product($post_id);
+            if ($product->is_type('subscription')) {
+                if($this->is_product_exist($post_id)) {
+                    $this->create_product($product);
+                    
+                } else {
+                    
+                }
+
+
+                
+            }
+        } catch (Exception $ex) {
+            
+        }
     }
 
     public function create_product() {
         try {
+            $product->get_id();
             $param_create_product = array();
             $param_create_product['name'] = '';
             $param_create_product['description'] = '';
@@ -29,6 +85,43 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
         } catch (Exception $ex) {
             
         }
+    }
+
+    public function get_product($paypal_product_id) {
+        try {
+            $args = array(
+                'timeout' => 60,
+                'redirection' => 5,
+                'httpversion' => '1.1',
+                'blocking' => true,
+                'headers' => array('Content-Type' => 'application/json', 'Authorization' => '', "prefer" => "return=representation", 'PayPal-Request-Id' => $this->payment->generate_request_id(), 'Paypal-Auth-Assertion' => $this->payment->angelleye_ppcp_paypalauthassertion()),
+                'cookies' => array()
+            );
+            $api_raw_response = $this->api_request->request($this->products_url . $paypal_product_id, $args, 'get_product');
+            $this->api_response = json_decode(json_encode($api_raw_response), FALSE);
+            return $this->api_response;
+        } catch (Exception $ex) {
+            
+        }
+    }
+
+    public function update_product() {
+        try {
+            
+        } catch (Exception $ex) {
+            
+        }
+    }
+
+    public function is_product_exist($post_id) {
+        $angelleye_ppcp_catalog_product_id = get_post_meta($post_id, 'angelleye_ppcp_catalog_product_id', true);
+        if (!empty($angelleye_ppcp_catalog_product_id)) {
+            $response = $this->get_product($angelleye_ppcp_catalog_product_id);
+            if(!empty($response['id'])) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
