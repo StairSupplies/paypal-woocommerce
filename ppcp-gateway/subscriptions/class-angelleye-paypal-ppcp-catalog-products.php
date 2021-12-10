@@ -57,31 +57,34 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
         try {
             $product = wc_get_product($post_id);
             if ($product->is_type('subscription')) {
-                if($this->is_product_exist($post_id)) {
+                if ($this->is_product_exist($post_id) === false) {
                     $this->create_product($product);
-                    
                 } else {
-                    
+                    $this->update_product($product);
                 }
-
-
-                
             }
         } catch (Exception $ex) {
             
         }
     }
 
-    public function create_product() {
+    public function create_product($product) {
         try {
-            $product->get_id();
+            $product_id = $product->get_id();
+            $type = $product->needs_shipping() ? 'PHYSICAL' : 'DIGITAL';
             $param_create_product = array();
-            $param_create_product['name'] = '';
-            $param_create_product['description'] = '';
-            $param_create_product['type'] = '';
-            $param_create_product['category'] = '';
-            $param_create_product['image_url'] = '';
-            $param_create_product['home_url'] = '';
+            $param_create_product['name'] = $product->get_name();
+            $param_create_product['type'] = $type;
+            $param_create_product['home_url'] = get_permalink($product_id);
+            $args = array(
+                'method' => 'POST',
+                'headers' => array('Content-Type' => 'application/json', 'Authorization' => '', "prefer" => "return=representation", 'PayPal-Request-Id' => $this->payment->generate_request_id(), 'Paypal-Auth-Assertion' => $this->payment->angelleye_ppcp_paypalauthassertion()),
+                'body' => $param_create_product
+            );
+            $this->api_response = $this->api_request->request($this->products_url, $args, 'create_product');
+            if ($this->api_response['id']) {
+                update_post_meta($product_id, 'angelleye_ppcp_catalog_product_id', $this->api_response['id']);
+            }
         } catch (Exception $ex) {
             
         }
@@ -97,27 +100,24 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
                 'headers' => array('Content-Type' => 'application/json', 'Authorization' => '', "prefer" => "return=representation", 'PayPal-Request-Id' => $this->payment->generate_request_id(), 'Paypal-Auth-Assertion' => $this->payment->angelleye_ppcp_paypalauthassertion()),
                 'cookies' => array()
             );
-            $api_raw_response = $this->api_request->request($this->products_url . $paypal_product_id, $args, 'get_product');
-            $this->api_response = json_decode(json_encode($api_raw_response), FALSE);
+            $this->api_response = $this->api_request->request($this->products_url . '/' . $paypal_product_id, $args, 'get_product');
             return $this->api_response;
         } catch (Exception $ex) {
             
         }
     }
 
-    public function update_product() {
-        try {
-            
-        } catch (Exception $ex) {
-            
-        }
+    public function update_product($product) {
+        /*
+         * No need to update product details for now
+         */
     }
 
     public function is_product_exist($post_id) {
         $angelleye_ppcp_catalog_product_id = get_post_meta($post_id, 'angelleye_ppcp_catalog_product_id', true);
         if (!empty($angelleye_ppcp_catalog_product_id)) {
             $response = $this->get_product($angelleye_ppcp_catalog_product_id);
-            if(!empty($response['id'])) {
+            if (isset($response['id']) && !empty($response['id'])) {
                 return true;
             }
         }
