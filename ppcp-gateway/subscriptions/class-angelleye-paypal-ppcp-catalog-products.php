@@ -5,6 +5,13 @@ defined('ABSPATH') || exit;
 class AngellEYE_PayPal_PPCP_Catalog_Products {
 
     protected static $_instance = null;
+    public $is_sandbox;
+    public $products_url;
+    public $plans;
+    public $api_log;
+    public $settings;
+    public $api_request;
+    public $payment;
 
     public static function instance() {
         if (is_null(self::$_instance)) {
@@ -39,6 +46,10 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
             if (!class_exists('AngellEYE_PayPal_PPCP_Log')) {
                 include_once PAYPAL_FOR_WOOCOMMERCE_PLUGIN_DIR . '/ppcp-gateway/class-angelleye-paypal-ppcp-log.php';
             }
+            if (!class_exists('AngellEYE_PayPal_PPCP_Plans')) {
+                include_once ( PAYPAL_FOR_WOOCOMMERCE_PLUGIN_DIR . '/ppcp-gateway/subscriptions/class-angelleye-paypal-ppcp-plans.php');
+            }
+            $this->plans = AngellEYE_PayPal_PPCP_Plans::instance();
             $this->api_log = AngellEYE_PayPal_PPCP_Log::instance();
             $this->settings = WC_Gateway_PPCP_AngellEYE_Settings::instance();
             $this->api_request = AngellEYE_PayPal_PPCP_Request::instance();
@@ -59,8 +70,11 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
             if ($product->is_type('subscription')) {
                 if ($this->is_product_exist($post_id) === false) {
                     $this->create_product($product);
-                } else {
-                    $this->update_product($product);
+                }
+                if ($this->is_plan_exist() === false) {
+                    $this->plans->create_plan();
+                } elseif ($update) {
+                    $this->plans->update_plan();
                 }
             }
         } catch (Exception $ex) {
@@ -107,12 +121,6 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
         }
     }
 
-    public function update_product($product) {
-        /*
-         * No need to update product details for now
-         */
-    }
-
     public function is_product_exist($post_id) {
         $angelleye_ppcp_catalog_product_id = get_post_meta($post_id, 'angelleye_ppcp_catalog_product_id', true);
         if (!empty($angelleye_ppcp_catalog_product_id)) {
@@ -122,6 +130,10 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
             }
         }
         return false;
+    }
+
+    public function is_plan_exist() {
+        
     }
 
 }
