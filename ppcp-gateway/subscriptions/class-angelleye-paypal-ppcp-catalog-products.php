@@ -12,6 +12,7 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
     public $settings;
     public $api_request;
     public $payment;
+    public $angelleye_ppcp_subscriptions = array();
 
     public static function instance() {
         if (is_null(self::$_instance)) {
@@ -71,7 +72,7 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
                 if ($this->is_product_exist($post_id) === false) {
                     $this->create_product($product);
                 }
-                if ($this->is_plan_exist() === false) {
+                if ($this->is_plan_exist($post_id) === false) {
                     $this->plans->create_plan();
                 } elseif ($update) {
                     $this->plans->update_plan();
@@ -97,7 +98,13 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
             );
             $this->api_response = $this->api_request->request($this->products_url, $args, 'create_product');
             if ($this->api_response['id']) {
-                update_post_meta($product_id, 'angelleye_ppcp_catalog_product_id', $this->api_response['id']);
+                $this->angelleye_ppcp_subscriptions[$product_id] = array(
+                    'woo_product_id' => $product_id,
+                    'woo_variable_id' => '',
+                    'paypal_product_id' => $this->api_response['id'],
+                    'paypal_plan_id' => ''
+                );
+                update_post_meta($product_id, 'angelleye_ppcp_subscriptions', $this->angelleye_ppcp_subscriptions);
             }
         } catch (Exception $ex) {
             
@@ -122,9 +129,9 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
     }
 
     public function is_product_exist($post_id) {
-        $angelleye_ppcp_catalog_product_id = get_post_meta($post_id, 'angelleye_ppcp_catalog_product_id', true);
-        if (!empty($angelleye_ppcp_catalog_product_id)) {
-            $response = $this->get_product($angelleye_ppcp_catalog_product_id);
+        $angelleye_ppcp_subscriptions = get_post_meta($post_id, 'angelleye_ppcp_subscriptions', true);
+        if (!empty($angelleye_ppcp_subscriptions[$post_id]['paypal_product_id'])) {
+            $response = $this->get_product($angelleye_ppcp_subscriptions[$post_id]['paypal_product_id']);
             if (isset($response['id']) && !empty($response['id'])) {
                 return true;
             }
@@ -132,8 +139,15 @@ class AngellEYE_PayPal_PPCP_Catalog_Products {
         return false;
     }
 
-    public function is_plan_exist() {
-        
+    public function is_plan_exist($post_id) {
+        $angelleye_ppcp_subscriptions = get_post_meta($post_id, 'angelleye_ppcp_subscriptions', true);
+        if (!empty($angelleye_ppcp_subscriptions[$post_id]['paypal_plan_id'])) {
+            $response = $this->get_product($angelleye_ppcp_subscriptions[$post_id]['paypal_product_id']);
+            if (isset($response['id']) && !empty($response['id'])) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
