@@ -100,14 +100,9 @@
                 onApprove: function (data, actions) {
                     $('.woocommerce').block({message: null, overlayCSS: {background: '#fff', opacity: 0.6}});
                     if (is_from_checkout) {
-                        if (angelleye_ppcp_manager.is_pre_checkout_offer === "yes") {
-                            $('.woocommerce').unblock();
-                            $('form.checkout').triggerHandler("checkout_place_order");
-                        } else {
-                            $.post(angelleye_ppcp_manager.cc_capture + "&paypal_order_id=" + data.orderID + "&woocommerce-process-checkout-nonce=" + angelleye_ppcp_manager.woocommerce_process_checkout, function (data) {
-                                window.location.href = data.data.redirect;
-                            });
-                        }
+                        $.post(angelleye_ppcp_manager.cc_capture + "&paypal_order_id=" + data.orderID + "&woocommerce-process-checkout-nonce=" + angelleye_ppcp_manager.woocommerce_process_checkout, function (data) {
+                            window.location.href = data.data.redirect;
+                        });
                     } else {
                         if (angelleye_ppcp_manager.is_skip_final_review === 'yes') {
                             actions.redirect(angelleye_ppcp_manager.direct_capture + '&paypal_order_id=' + data.orderID + '&paypal_payer_id=' + data.payerID + '&from=' + angelleye_ppcp_manager.page);
@@ -234,14 +229,64 @@
                 }
             }).then(function (hf) {
                 hf.on('cardTypeChange', function (event) {
-                    if (event.cards.length === 1) {
-                        $('#angelleye_ppcp-card-number').removeClass().addClass(event.cards[0].type.replace("master-card", "mastercard").replace("american-express", "amex").replace("diners-club", "dinersclub").replace("-", ""));
-                        $('#angelleye_ppcp-card-number').addClass("input-text wc-credit-card-form-card-number hosted-field-braintree braintree-hosted-fields-valid");
+                    if (event.cards.length > 0) {
+                        var cardname = event.cards[0].type.replace("master-card", "mastercard").replace("american-express", "amex").replace("diners-club", "dinersclub").replace("-", "");
+                        console.log(cardname);
+                        if (jQuery.inArray(cardname, angelleye_ppcp_manager.disable_cards) !== -1) {
+                            $('#angelleye_ppcp-card-number').addClass('ppcp-invalid-cart');
+                            showError('<ul class="woocommerce-error" role="alert">' + angelleye_ppcp_manager.card_not_supported + '</ul>', $('form'));
+                        } else {
+                            $('#angelleye_ppcp-card-number').removeClass().addClass(cardname);
+                            $('#angelleye_ppcp-card-number').addClass("input-text wc-credit-card-form-card-number hosted-field-braintree braintree-hosted-fields-valid");
+                        }
+                        var payment_method_element_selector;
+                        if (angelleye_ppcp_manager.page === 'product') {
+                            payment_method_element_selector = 'form.cart';
+                        } else if (angelleye_ppcp_manager.page === 'cart') {
+                            payment_method_element_selector = 'form.woocommerce-cart-form';
+                        } else if (angelleye_ppcp_manager.page === 'checkout') {
+                            payment_method_element_selector = 'form.checkout';
+                        }
+                        if ($('#angelleye_ppcp_payment_method_title').length > 0) {
+                            $('#angelleye_ppcp_payment_method_title').empty();
+                        }
+                        $('<input>', {
+                            type: 'hidden',
+                            id: 'angelleye_ppcp_payment_method_title',
+                            name: 'angelleye_ppcp_payment_method_title',
+                            value: 'Advanced Credit Cards'
+                        }).appendTo(payment_method_element_selector);
                     }
                 });
+
                 $(document.body).on('submit_paypal_cc_form', function (event) {
                     event.preventDefault();
                     var state = hf.getState();
+                    if (typeof state.cards !== 'undefined') {
+                        if (state.fields.number.isValid) {
+                            var cardname = state.cards[0].type;
+                            if (typeof cardname !== 'undefined' && cardname !== null || cardname.length !== 0) {
+                                if (jQuery.inArray(cardname, angelleye_ppcp_manager.disable_cards) !== -1) {
+                                    $('form.checkout').removeClass('processing paypal_cc_submiting HostedFields createOrder').unblock();
+                                    $('#angelleye_ppcp-card-number').addClass('ppcp-invalid-cart');
+                                    showError('<ul class="woocommerce-error" role="alert">' + angelleye_ppcp_manager.card_not_supported + '</ul>', $('form'));
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        $('form.checkout').removeClass('processing paypal_cc_submiting HostedFields createOrder').unblock();
+                        showError('<ul class="woocommerce-error" role="alert">' + angelleye_ppcp_manager.fields_not_valid + '</ul>', $('form'));
+                        return;
+                    }
+                    var formValid = Object.keys(state.fields).every(function (key) {
+                        return state.fields[key].isValid;
+                    });
+                    if (formValid === false) {
+                        $('form.checkout').removeClass('processing paypal_cc_submiting HostedFields createOrder').unblock();
+                        showError('<ul class="woocommerce-error" role="alert">' + angelleye_ppcp_manager.fields_not_valid + '</ul>', $('form'));
+                        return;
+                    }
                     var contingencies = [];
                     contingencies = [angelleye_ppcp_manager.three_d_secure_contingency];
                     $('form.checkout').addClass('processing').block({
@@ -316,6 +361,9 @@
             hide_show_place_order_button();
         });
         var hide_show_place_order_button = function () {
+            if (is_angelleye_ppcp_selected() === true) {
+                $('.wcf-pre-checkout-offer-action').val('');
+            }
             if (is_hosted_field_eligible() === false) {
                 $('.payment_method_angelleye_ppcp_cc').hide();
             }

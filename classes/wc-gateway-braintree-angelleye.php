@@ -473,15 +473,14 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
 
     public function payment_fields() {
         global $woocommerce;
-        if ($this->description) {
-            echo wpautop(wptexturize($this->description));
+        $description = $this->get_description();
+        if ($description) {
+            echo wpautop(wptexturize($description));
         }
         if ( $this->supports( 'tokenization' ) ) {
             $this->tokenization_script();
         }
-        
         $this->angelleye_braintree_lib();
-        
         try {
             if (is_user_logged_in() && $this->enable_tokenized_payments == 'yes') {
                 $customer_id = get_current_user_id();
@@ -1140,6 +1139,9 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
                 $request_data['deviceData'] = $device_data;
             }
             $request_data['options']['submitForSettlement'] = true;
+            if (!empty($this->softdescriptor)) {
+                $request_data['descriptor'] = array('name' => $this->softdescriptor);
+            }
             try {
                 $this->response = $this->braintree_gateway->transaction()->sale(apply_filters('angelleye_woocommerce_braintree_sale_request_args', $request_data));
                 do_action('angelleye_paypal_response_data', $this->response, $request_data, '1', $this->sandbox, false, 'braintree');
@@ -3111,21 +3113,21 @@ class WC_Gateway_Braintree_AngellEYE extends WC_Payment_Gateway_CC {
         echo __('Pay through your Bank Account', 'paypal-for-woocommerce');
         $default_fields = array(
                 'angelleye-bank-account-type' => '<p class="form-row form-row-first">
-                        <label for="angelleye-bank-account-type">' . esc_html__( 'Account Type', 'woocommerce' ) . '&nbsp;<span class="required">*</span></label>
+                        <label for="angelleye-bank-account-type">' . esc_html__( 'Account Type', 'paypal-for-woocommerce' ) . '&nbsp;<span class="required">*</span></label>
                         <select name="angelleye-bank-account-type" id="angelleye-bank-account-type" class="angelleye-bank-account-type angelleye_us_bank_field">
 										<option value="">Select</option><option value="S">Savings</option><option value="C">Checking</option>
 									</select>
                 </p>',
                 'angelleye-account-holder-name' => '<p class="form-row form-row-first">
-                        <label for="angelleye-account-holder-name">' . esc_html__( 'Account Holder Name', 'woocommerce' ) . '&nbsp;<span class="required">*</span></label>
+                        <label for="angelleye-account-holder-name">' . esc_html__( 'Account Holder Name', 'paypal-for-woocommerce' ) . '&nbsp;<span class="required">*</span></label>
                         <input id="angelleye-account-holder-name" class="input-text angelleye-account-holder-name angelleye_us_bank_field"  autocapitalize="no" spellcheck="no" type="text"  name="angelleye-account-holder-name" />
                 </p>',
                 'angelleye-routing-number' => '<p class="form-row form-row-first">
-                        <label for="angelleye-routing-number">' . esc_html__( 'Routing Number', 'woocommerce' ) . '&nbsp;<span class="required">*</span></label>
+                        <label for="angelleye-routing-number">' . esc_html__( 'Routing Number', 'paypal-for-woocommerce' ) . '&nbsp;<span class="required">*</span></label>
                         <input id="angelleye-routing-number" class="input-text angelleye-routing-number angelleye_us_bank_field"  autocapitalize="no" spellcheck="no" type="text"  name="angelleye-routing-number" />
                 </p>',
                 'angelleye-account-number' => '<p class="form-row form-row-first">
-                        <label for="angelleye-account-number">' . esc_html__( 'Account Number', 'woocommerce' ) . '&nbsp;<span class="required">*</span></label>
+                        <label for="angelleye-account-number">' . esc_html__( 'Account Number', 'paypal-for-woocommerce' ) . '&nbsp;<span class="required">*</span></label>
                         <input id="angelleye-account-number" class="input-text angelleye-account-number angelleye_us_bank_field"  autocorrect="no" autocapitalize="no" spellcheck="no" type="text" name="angelleye-account-number" />
                 </p>',
         );
